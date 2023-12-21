@@ -3,12 +3,14 @@
 import express from "express"
 import { MongoClient } from "mongodb"
 import { productRouter } from "./routes/products.js"
-
-
+import cors from "cors"
 // const dotenv=require('dotenv').config()
 import * as dotenv from "dotenv"
-dotenv.config()
+
 const app = express()
+app.use(cors)
+
+dotenv.config()
 const Port = process.env.Port
 
 //inbuilt middleware
