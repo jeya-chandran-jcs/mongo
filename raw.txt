@@ -1,0 +1,343 @@
+index.js
+const express = require('express')
+const { MongoClient } = require('mongodb')
+
+const app = express()
+const Port = 5000
+
+
+const Mongo_Url = "mongodb://120.0.0.1:27017"
+//mongo connect
+function connection() {
+  const client =new MongoClient(Mongo_Url)
+  client.connect()
+  console.log("mongodb is connected")
+  return client
+}
+
+const client = connection()
+
+//apiendpoint
+
+app.get('/', (req, res) => {
+  res.send('Hello World')
+})
+
+app.get('/product', async (req, res) => {
+  // console.log(products)
+  const { category, rating } = req.query
+  console.log(req.query, category)
+
+  //   let filteredproducts=products
+  //   if(category){
+  //   filteredproducts=filteredproducts.filter(pd=>pd.category===category)
+  // }
+  // if (req.query.rating) {
+  //   req.query.rating = Number(req.query.rating)
+    // filteredproducts=filteredproducts.filter(pd=>pd.rating==rating)
+  // }
+  //   const result=products.filter((pd)=>pd.category===category)
+
+  const product = await client.db("mongo_products").collection("products").find({}).toArray()
+  res.send(product)
+})
+
+app.get('/product/:id', async (req, res) => {
+  const { id } = req.params
+  console.log(req.params, id)
+  const product = await client.db("mongo_products").collection("products").findOne({ id: id })
+  //   const myProduct=products.find((pd)=>pd.id===id)
+  res.send(product)
+})
+
+app.listen(Port, () => console.log("server is started", Port))
+
+// const express = require('express');
+// const { MongoClient } = require('mongodb');
+
+// const app = express();
+// const Port = 5000;
+
+// const Mongo_Url = 'mongodb://127.0.0.1:27017';
+// let db;
+
+// //mongo connect
+// async function connectDB() {
+//   const client = new MongoClient(Mongo_Url, { useUnifiedTopology: true });
+
+//   try {
+//     await client.connect();
+//     console.log('MongoDB connected successfully');
+//     db = client.db('mongo_products');
+//   } catch (error) {
+//     console.error('Error connecting to MongoDB:', error);
+//   }
+// }
+
+// connectDB();
+
+// // API endpoints
+// app.get('/', (req, res) => {
+//   res.send('Hello World');
+// });
+
+// app.get('/product', async (req, res) => {
+//   const { category, rating } = req.query;
+//   console.log(req.query, category);
+
+//   try {
+//     let query = {};
+//     if (category) {
+//       query.category = category;
+//     }
+//     if (rating) {
+//       query.rating = Number(rating);
+//     }
+
+//     const products = await db.collection('products').find(query).toArray();
+//     res.send(products);
+//   } catch (error) {
+//     console.error('Error fetching products:', error);
+//     res.status(500).send('Error fetching products');
+//   }
+// });
+
+// app.get('/product/:id', async (req, res) => {
+//   const { id } = req.params;
+//   console.log(req.params, id);
+
+//   try {
+//     const product = await db.collection('products').findOne({ id: parseInt(id) });
+//     res.send(product);
+//   } catch (error) {
+//     console.error('Error fetching product by ID:', error);
+//     res.status(500).send('Error fetching product by ID');
+//   }
+// });
+
+// app.listen(Port, () => console.log('Server is started on port', Port));
+-----------------------------------------------------------------------------------------------------
+
+BEFORE REFACTOR
+
+const express = require('express')
+const { MongoClient } = require('mongodb')
+const dotenv=require('dotenv').config()
+const app = express()
+const Port = process.env.Port
+
+//inbuilt middleware
+app.use(express.json()) //interpreter==>converting body to json
+  //?retr...not mandatory 
+const Mongo_Url= process.env.Mongo_Url
+// const Mongo_Url = "mongodb://127.0.0.1:27017"
+//mongo connect
+console.log(process.env.Mongo_Url)
+
+function connection() {
+  const client =new MongoClient(Mongo_Url)
+  client.connect()
+  console.log("mongodb is connected")
+  return client
+}
+
+const client = connection()
+
+//apiendpoint
+
+app.get('/', (req, res) => {
+  res.send('Hello World')
+})
+
+app.get('/product', async (req, res) => {
+  // console.log(products)
+  const { category, rating } = req.query
+  console.log(req.query, category)
+  if(req.query.rating){
+    req.query.rating= +req.query.rating 
+  }
+ 
+  const product = await client.db("mongo_products").collection("products").find(req.query).toArray()
+  res.send(product)
+})
+
+app.get('/product/:id', async (req, res) => {
+  const { id } = req.params
+  console.log(req.params, id)
+  const product = await client.db("mongo_products").collection("products").findOne({ id: id })
+  product ? res.send(product) : res.status(404).send({alert:"no product is here"})
+})
+
+app.delete('/product/:id', async (req, res) => {
+  const { id } = req.params
+  console.log(req.params, id)
+  const product = await client.db("mongo_products").collection("products").deleteOne({ id: id })
+ 
+  res.send(product)
+})
+
+
+app.post("/product",async(req,res)=>{
+  const {id,name,poster,price,rating,summary,category}=req.body
+
+  if(!name || typeof name !=="string" 
+     || !poster || typeof poster !=="string" 
+     || ! price|| typeof price !=="string" )
+  {
+    res.status(400).send("missing or invalid fields ")
+  }
+  
+  console.log(name,poster,price)
+  
+  // const product={id,name,poster,price,rating,category,summary,createdat: new Date()}
+  
+  try
+    {
+      const result = await client.db("mongo_products").collection("products")
+      .insertOne(req.body,{createdat: new Date()})
+
+      res.send({success:true ,message:"product added successfully"})
+    }
+  catch(err){
+    console.log(err)
+    res.status(500).send({err:"internal server error catch"})
+  }
+  
+})
+
+app.listen(Port, () => console.log("server is started", Port))
+
+
+// const express = require('express');
+// const { MongoClient } = require('mongodb');
+
+// const app = express();
+// const Port = 5000;
+
+// const Mongo_Url = 'mongodb://127.0.0.1:27017';
+// let db;
+
+// //mongo connect
+// async function connectDB() {
+//   const client = new MongoClient(Mongo_Url, { useUnifiedTopology: true });
+
+//   try {
+//     await client.connect();
+//     console.log('MongoDB connected successfully');
+//     db = client.db('mongo_products');
+//   } catch (error) {
+//     console.error('Error connecting to MongoDB:', error);
+//   }
+// }
+
+// connectDB();
+
+// // API endpoints
+// app.get('/', (req, res) => {
+//   res.send('Hello World');
+// });
+
+// app.get('/product', async (req, res) => {
+//   const { category, rating } = req.query;
+//   console.log(req.query, category);
+
+//   try {
+//     let query = {};
+//     if (category) {
+//       query.category = category;
+//     }
+//     if (rating) {
+//       query.rating = Number(rating);
+//     }
+
+//     const products = await db.collection('products').find(query).toArray();
+//     res.send(products);
+//   } catch (error) {
+//     console.error('Error fetching products:', error);
+//     res.status(500).send('Error fetching products');
+//   }
+// });
+
+// app.get('/product/:id', async (req, res) => {
+//   const { id } = req.params;
+//   console.log(req.params, id);
+
+//   try {
+//     const product = await db.collection('products').findOne({ id: parseInt(id) });
+//     res.send(product);
+//   } catch (error) {
+//     console.error('Error fetching product by ID:', error);
+//     res.status(500).send('Error fetching product by ID');
+//   }
+// });
+
+// app.listen(Port, () => console.log('Server is started on port', Port));
+
+--------------------------------------------------------------------------------------
+
+LOGIC ONLY WITH MONGO AND EXPRESS WITHOUT ATLAS OR ANYTHING
+
+// const express = require('express');
+// const { MongoClient } = require('mongodb');
+
+// const app = express();
+// const Port = 5000;
+
+// const Mongo_Url = 'mongodb://127.0.0.1:27017';
+// let db;
+
+// //mongo connect
+// async function connectDB() {
+//   const client = new MongoClient(Mongo_Url, { useUnifiedTopology: true });
+
+//   try {
+//     await client.connect();
+//     console.log('MongoDB connected successfully');
+//     db = client.db('mongo_products');
+//   } catch (error) {
+//     console.error('Error connecting to MongoDB:', error);
+//   }
+// }
+
+// connectDB();
+
+// // API endpoints
+// app.get('/', (req, res) => {
+//   res.send('Hello World');
+// });
+
+// app.get('/product', async (req, res) => {
+//   const { category, rating } = req.query;
+//   console.log(req.query, category);
+
+//   try {
+//     let query = {};
+//     if (category) {
+//       query.category = category;
+//     }
+//     if (rating) {
+//       query.rating = Number(rating);
+//     }
+
+//     const products = await db.collection('products').find(query).toArray();
+//     res.send(products);
+//   } catch (error) {
+//     console.error('Error fetching products:', error);
+//     res.status(500).send('Error fetching products');
+//   }
+// });
+
+// app.get('/product/:id', async (req, res) => {
+//   const { id } = req.params;
+//   console.log(req.params, id);
+
+//   try {
+//     const product = await db.collection('products').findOne({ id: parseInt(id) });
+//     res.send(product);
+//   } catch (error) {
+//     console.error('Error fetching product by ID:', error);
+//     res.status(500).send('Error fetching product by ID');
+//   }
+// });
+
+// app.listen(Port, () => console.log('Server is started on port', Port));
