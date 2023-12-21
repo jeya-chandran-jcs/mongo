@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
   res.send('Hello World')
 })
 
-app.use("/product",productRouter)
+app.use("/products",productRouter)
 
 app.listen(Port, () => console.log("server is started", Port))
 
